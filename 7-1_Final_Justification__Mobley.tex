@@ -1,0 +1,76 @@
+% !TEX program = pdflatex
+\documentclass[stu,12pt]{apa7}
+
+% Packages
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage{csquotes}
+\usepackage{hyperref}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{array}
+
+% Paper meta (APA7 student)
+\title{Final Project Reflection: 3D Scene Design, Controls, and Modularity}
+\shorttitle{3D Scene Reflection}
+\authorsnames{Dave Moble}
+\authorsaffiliations{Southern New Hampshire University}
+\course{CS--330}
+\duedate{\today}
+
+\begin{document}
+\maketitle
+
+\section{Justification and Object Choices}
+The scene focuses on a mug, a saucer, and a straw because these items map cleanly to low--polygon primitives while still allowing meaningful demonstrations of texturing, lighting, and shadowing. The mug is constructed from two tapered cylinders (an outer shell and an inner liner) so that the rim reads correctly and the walls have plausible thickness. The saucer combines a thin cylinder with a shallow rim ring, which together present as a plate. The liquid surface is modeled as a single top cap (for performance efficiency) and enhanced in the shaders with subtle ripple and meniscus cues. A slender cylindrical straw provides a contrasting vertical element and a useful test for shading interactions through the liquid.
+
+\section{Functionality and Architecture}
+Responsibilities are separated to keep the code modular and testable. The \texttt{ViewManager} handles camera state, input processing, per--frame timing, and projection mode switching. The \texttt{SceneManager} owns transforms, materials, textures, lighting configuration, and all draw calls, including a dedicated routine for spotlight shadow mapping. The shader programs implement Phong lighting (ambient, diffuse, specular), a directional light for overall fill, a dim point light to avoid fully dark regions, and a camera--tied spotlight that produces focused illumination and shadows.
+
+\section{Navigation and Camera Control}
+Keyboard controls support full six--degree translation of the camera: \texttt{W/A/S/D} move forward/left/back/right, \texttt{Q} or \texttt{Space} move up, and \texttt{E} or \texttt{Left Ctrl} move down. The \texttt{P} key switches to a perspective projection, and the \texttt{O} key switches to an orthographic projection while keeping the camera orientation fixed. Mouse motion adjusts yaw and pitch for nuanced viewing, and the mouse scroll wheel adjusts camera movement speed. Acceleration and deceleration are applied for smooth navigation. The camera’s position and direction are also used to drive a flashlight--style spotlight each frame.
+
+\section{Lighting and Materials}
+Lighting is staged to balance clarity and realism: a directional light provides broad fill, a dim point light prevents hard black areas, and a camera--tied spotlight adds emphasis and shadows. Materials use Phong parameters with tuned shininess and specular response. The saucer is configured to read as an opaque, reflective ceramic/glass surface by using strong specular highlights with high shininess.
+
+\section{Modularity and Reusable Functions}
+\begin{itemize}
+  \item \textbf{\texttt{SceneManager::SetTransformations(scale, Xdeg, Ydeg, Zdeg, pos)}} centralizes model matrix construction (scale, rotate, translate) and is reused for every object, simplifying layout changes.
+  \item \textbf{\texttt{SceneManager::SetShaderColor(r, g, b, a)}} and \textbf{\texttt{SetShaderTexture(tag)}} switch between color and texture flows in a uniform way, avoiding duplicate boilerplate.
+  \item \textbf{\texttt{SceneManager::SetTextureUVScale(u, v)}} exposes texture tiling without modifying shader code.
+  \item \textbf{\texttt{SceneManager::SetShaderMaterial(tag)}} decouples material selection and can be extended into a reusable catalog.
+  \item \textbf{\texttt{SceneManager::RenderShadowMap(lightPos, lightDir)}} encapsulates the depth pass and mirrors scene transforms so shadow updates remain isolated.
+  \item \textbf{\texttt{ViewManager::ProcessSmoothMovement()}}, \textbf{\texttt{ProcessProjectionKeys()}}, and \textbf{\texttt{ProcessRippleControls()}} keep input concerns separated and easy to adjust.
+\end{itemize}
+
+\section{Performance and Triangle Budget}
+All meshes are low--polygon primitives so that each object is kept well under the 1{,}000--triangle target. Texture sampling uses mipmaps. The spotlight’s shadow map is rendered at 2048$\times$2048 to balance crisp contact shadows against runtime cost.
+
+\section{Primitives Summary}
+Table~\ref{tab:shapes} summarizes the objects, their underlying primitives, and counts.
+
+\begin{table}[h]
+  \centering
+  \caption{Primitive Shapes Used in the Scene}\label{tab:shapes}
+  \begin{tabular}{>{\raggedright}p{0.42\linewidth} >{\raggedright}p{0.38\linewidth} >{\raggedleft\arraybackslash}p{0.12\linewidth}}
+    \toprule
+    \textbf{Object} & \textbf{Primitive} & \textbf{Count} \\
+    \midrule
+    Table surface & Plane & 1 \\
+    Saucer base & Cylinder & 1 \\
+    Saucer rim ring & Cylinder & 1 \\
+    Mug outer shell & Tapered cylinder & 1 \\
+    Mug inner shell & Tapered cylinder & 1 \\
+    Liquid top cap & Cylinder (top cap only) & 1 \\
+    Mug bottom cap & Cylinder (bottom cap only) & 1 \\
+    Straw & Cylinder & 1 \\
+    \midrule
+    \textbf{Totals} & Primitive draws & \textbf{8} \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+\section{Notes}
+Cylinder disks are rendered with the cylinder mesh by enabling only the top or bottom cap. The simple set of primitives keeps the scene performant while achieving the intended visual design.
+
+\end{document}
